@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>App Adik</title>
+<style>
+:root{--text:#fff;--sub:#cdd4e0;--card:rgba(255,255,255,.14);--border:rgba(255,255,255,.2);--accent:#5b7fd8;color-scheme:dark;}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;font-family:-apple-system,Roboto,sans-serif;color:var(--text);overflow:hidden;
+padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transition:background 1.5s}
+#bg{position:fixed;inset:0;z-index:-1;transition:background 1.5s}
+.cloud,.drop{position:absolute;opacity:.5;pointer-events:none}
+.cloud{font-size:40px;animation:drift 40s linear infinite}
+@keyframes drift{from{transform:translateX(-60px)}to{transform:translateX(110vw)}}
+.drop{width:2px;height:16px;background:#9fc3ff;top:-20px;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(110vh)}}
+.view{position:fixed;inset:0;padding:16px;overflow-y:auto;display:none;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+.view.active{display:block}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+header h1{font-size:19px;margin:0;font-weight:700}
+.icon-btn{width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--border);
+display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
+#clockWrap{text-align:center;margin:18px 0 4px}
+#clock{font-size:64px;font-weight:300;letter-spacing:-2px}
+#dateStr{color:var(--sub);font-size:14px;margin-top:2px}
+#weatherRow{display:flex;justify-content:center;align-items:center;gap:8px;margin:10px 0 20px}
+select{background:var(--card);border:1px solid var(--border);color:#fff;border-radius:20px;padding:6px 14px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:6px}
+.app{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.app .ic{width:56px;height:56px;border-radius:18px;background:var(--card);border:1px solid var(--border);
+display:flex;align-items:center;justify-content:center;font-size:26px}
+.app span{font-size:11px;color:var(--sub)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:16px;backdrop-filter:blur(6px)}
+.card h3{margin:0 0 8px;font-size:14px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--border);font-size:13px}
+.row:first-of-type{border-top:none}
+button{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600}
+input[type=time],input[type=text]{background:var(--card);border:1px solid var(--border);color:#fff;border-radius:10px;padding:8px;font-size:14px;width:100%}
+.backbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.backbar h2{font-size:17px;margin:0}
+.toggle{width:40px;height:22px;border-radius:12px;background:#555;position:relative;cursor:pointer;flex-shrink:0}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+.toggle.on::after{left:20px}
+.del{color:#f87171;font-size:18px;padding:0 4px}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;margin-top:10px}
+.calgrid .dow{color:var(--sub);font-size:11px}
+.calgrid .day{padding:8px 0;border-radius:8px;position:relative}
+.calgrid .day.today{background:var(--accent)}
+.calgrid .day.has::after{content:"";position:absolute;bottom:2px;left:50%;width:4px;height:4px;background:#fff;border-radius:50%;transform:translateX(-50%)}
+#calc{text-align:right;background:var(--card);border-radius:12px;padding:14px;font-size:30px;margin-bottom:10px;min-height:44px;word-break:break-all}
+.ckeys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ckeys button{padding:16px 0;font-size:18px;background:var(--card);border:1px solid var(--border)}
+.ckeys button.op{background:var(--accent)}
+#notesArea{width:100%;min-height:50vh;background:var(--card);border:1px solid var(--border);color:#fff;border-radius:12px;padding:12px;font-size:14px}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:50;display:none}
+</style></head>
+<body>
+<div id="bg"></div>
+<div id="weatherFx"></div>
+
+<div class="view active" id="home">
+  <header>
+    <div class="icon-btn" onclick="go('notes')">+</div>
+    <h1>App Adik</h1>
+    <div class="icon-btn" onclick="go('settings')">⚙️</div>
+  </header>
+  <div id="clockWrap"><div id="clock">--:--</div><div id="dateStr"></div></div>
+  <div id="weatherRow">
+    <span id="wIcon">☀️</span>
+    <select id="wSel" onchange="setWeather(this.value)">
+      <option value="cerah">Cerah</option>
+      <option value="berawan">Berawan</option>
+      <option value="hujan">Hujan</option>
+      <option value="petir">Hujan Petir</option>
+    </select>
+  </div>
+  <div class="grid">
+    <div class="app" onclick="go('alarm')"><div class="ic">⏰</div><span>Alarm</span></div>
+    <div class="app" onclick="go('calendar')"><div class="ic">📅</div><span>Kalender</span></div>
+    <div class="app" onclick="go('calc')"><div class="ic">🧮</div><span>Kalkulator</span></div>
+    <div class="app" onclick="go('notes')"><div class="ic">📝</div><span>Catatan</span></div>
+  </div>
+  <div class="card">
+    <h3>Alarm berikutnya</h3>
+    <div id="nextAlarm" style="color:var(--sub);font-size:13px">Belum ada alarm</div>
+  </div>
+  <div class="card">
+    <h3>Shortcut File</h3>
+    <input type="file" id="fileInput" style="display:none" onchange="addShortcut(event)">
+    <button style="width:100%" onclick="document.getElementById('fileInput').click()">+ Tambah Shortcut</button>
+    <div id="shortcutList" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div class="view" id="settings">
+  <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2>Pengaturan</h2></div>
+  <div class="card">
+    <h3>Tentang</h3>
+    <div style="color:var(--sub);font-size:13px">App Adik — jam, alarm, kalender, kalkulator, catatan. Semua data tersimpan di HP ini saja.</div>
+    <div style="color:var(--sub);font-size:12px;margin-top:6px">Versi: <span id="verLabel"></span></div>
+  </div>
+  <div class="card">
+    <h3>Pembaruan</h3>
+    <div style="color:var(--sub);font-size:13px;margin-bottom:10px">Halaman ini selalu memuat versi terbaru tiap dibuka. Tekan tombol ini kalau tampilannya masih terasa lama (memaksa muat ulang).</div>
+    <button style="width:100%" onclick="checkUpdate()">Cek Pembaruan</button>
+  </div>
+  <div class="card">
+    <h3>Hapus semua data</h3>
+    <div style="color:var(--sub);font-size:13px;margin-bottom:10px">Menghapus semua alarm, agenda kalender, dan catatan. Tidak bisa dibatalkan.</div>
+    <button style="width:100%;background:#dc2626" onclick="resetAll()">Hapus Semua Data</button>
+  </div>
+</div>
+
+<div class="view" id="alarm">
+  <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2>Alarm</h2></div>
+  <input type="time" id="newAlarmTime">
+  <input type="text" id="newAlarmLabel" placeholder="Label (opsional)" style="margin-top:8px">
+  <button style="margin-top:10px;width:100%" onclick="addAlarm()">Tambah Alarm</button>
+  <div class="card"><div id="alarmList"></div></div>
+</div>
+
+<div class="view" id="calendar">
+  <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2 id="calTitle">Kalender</h2></div>
+  <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+    <button onclick="shiftMonth(-1)">‹</button><button onclick="shiftMonth(1)">›</button>
+  </div>
+  <div class="calgrid" id="calGrid"></div>
+  <div class="card">
+    <h3 id="selDateLabel">Pilih tanggal</h3>
+    <input type="text" id="eventInput" placeholder="Tulis agenda...">
+    <button style="margin-top:8px;width:100%" onclick="addEvent()">Simpan</button>
+    <div id="eventList" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div class="view" id="calc">
+  <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2>Kalkulator</h2></div>
+  <div id="calcDisp">0</div>
+  <div id="calc" style="display:none"></div>
+  <div class="ckeys" id="calcKeys"></div>
+</div>
+
+<div class="view" id="notes">
+  <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2>Catatan</h2></div>
+  <textarea id="notesArea" oninput="saveNotes()" placeholder="Tulis catatan di sini..."></textarea>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function go(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
+
+// ---- clock + background by time ----
+function updateClock(){
+  const d=new Date();
+  const hh=String(d.getHours()).padStart(2,'0'),mm=String(d.getMinutes()).padStart(2,'0');
+  document.getElementById('clock').textContent=hh+':'+mm;
+  document.getElementById('dateStr').textContent=d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long'});
+  applyBg(d.getHours());
+  checkAlarms(d);
+}
+function applyBg(h){
+  let g;
+  if(h>=5&&h<10) g='linear-gradient(180deg,#8ec5fc,#5b8def)';
+  else if(h>=10&&h<15) g='linear-gradient(180deg,#4a90e2,#357abd)';
+  else if(h>=15&&h<18) g='linear-gradient(180deg,#f2994a,#935c8f)';
+  else g='linear-gradient(180deg,#0f1a3a,#1e2a4a)';
+  document.getElementById('bg').style.background=g;
+}
+function setWeather(w){
+  localStorage.setItem('weather',w);
+  const icons={cerah:'☀️',berawan:'⛅',hujan:'🌧️',petir:'⛈️'};
+  document.getElementById('wIcon').textContent=icons[w];
+  document.getElementById('wSel').value=w;
+  const fx=document.getElementById('weatherFx');fx.innerHTML='';
+  if(w==='berawan'||w==='hujan'||w==='petir'){
+    for(let i=0;i<3;i++){const c=document.createElement('div');c.className='cloud';c.textContent='☁️';
+      c.style.top=(10+i*15)+'%';c.style.animationDelay=(-i*13)+'s';fx.appendChild(c);}
+  }
+  if(w==='hujan'||w==='petir'){
+    for(let i=0;i<25;i++){const r=document.createElement('div');r.className='drop';
+      r.style.left=Math.random()*100+'%';r.style.animationDuration=(0.5+Math.random())+'s';
+      r.style.animationDelay=Math.random()+'s';fx.appendChild(r);}
+  }
+}
+(function(){const w=localStorage.getItem('weather')||'cerah';setWeather(w);})();
+setInterval(updateClock,1000);updateClock();
+
+// ---- alarm ----
+function getAlarms(){return JSON.parse(localStorage.getItem('alarms')||'[]');}
+function saveAlarms(a){localStorage.setItem('alarms',JSON.stringify(a));renderAlarms();}
+function addAlarm(){
+  const t=document.getElementById('newAlarmTime').value;
+  if(!t){toast('Pilih jam dulu');return;}
+  const l=document.getElementById('newAlarmLabel').value||'Alarm';
+  const a=getAlarms();a.push({time:t,label:l,on:true,id:Date.now()});
+  saveAlarms(a);document.getElementById('newAlarmLabel').value='';
+}
+function toggleAlarm(id){const a=getAlarms();const x=a.find(x=>x.id===id);x.on=!x.on;saveAlarms(a);}
+function delAlarm(id){saveAlarms(getAlarms().filter(x=>x.id!==id));}
+function renderAlarms(){
+  const a=getAlarms().sort((x,y)=>x.time.localeCompare(y.time));
+  document.getElementById('alarmList').innerHTML=a.length?a.map(x=>
+    `<div class="row"><div><b>${x.time}</b> <span style="color:var(--sub)">${x.label}</span></div>
+     <div style="display:flex;align-items:center;gap:10px">
+     <div class="toggle ${x.on?'on':''}" onclick="toggleAlarm(${x.id})"></div>
+     <span class="del" onclick="delAlarm(${x.id})">✕</span></div></div>`).join('')
+    : '<div style="color:var(--sub);font-size:13px">Belum ada alarm</div>';
+  const active=a.filter(x=>x.on);
+  document.getElementById('nextAlarm').textContent=active.length?(active[0].time+' — '+active[0].label):'Belum ada alarm';
+}
+let lastCheck='';
+function checkAlarms(d){
+  const hh=String(d.getHours()).padStart(2,'0'),mm=String(d.getMinutes()).padStart(2,'0');
+  const now=hh+':'+mm;
+  if(now===lastCheck)return; lastCheck=now;
+  getAlarms().forEach(a=>{if(a.on&&a.time===now){toast('⏰ '+a.label+' — '+a.time);beep();}});
+}
+function beep(){
+  try{const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=880;o.start();g.gain.setValueAtTime(.2,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+1.2);o.stop(ctx.currentTime+1.2);}catch(e){}
+}
+renderAlarms();
+
+// ---- calendar ----
+let calDate=new Date(), selDate=null;
+function shiftMonth(n){calDate.setMonth(calDate.getMonth()+n);renderCal();}
+function dayKey(y,m,d){return y+'-'+(m+1)+'-'+d;}
+function renderCal(){
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  document.getElementById('calTitle').textContent=calDate.toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
+  const today=new Date();
+  const ev=JSON.parse(localStorage.getItem('events')||'{}');
+  let html=['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d=>`<div class="dow">${d}</div>`).join('');
+  for(let i=0;i<first;i++)html+='<div></div>';
+  for(let d=1;d<=days;d++){
+    const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+    const has=ev[dayKey(y,m,d)]&&ev[dayKey(y,m,d)].length;
+    html+=`<div class="day ${isToday?'today':''} ${has?'has':''}" onclick="pickDay(${y},${m},${d})">${d}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML=html;
+  if(!selDate)selDate={y:today.getFullYear(),m:today.getMonth(),d:today.getDate()};
+  renderEvents();
+}
+function pickDay(y,m,d){selDate={y,m,d};renderEvents();}
+function renderEvents(){
+  const k=dayKey(selDate.y,selDate.m,selDate.d);
+  document.getElementById('selDateLabel').textContent='Agenda '+selDate.d+'/'+(selDate.m+1)+'/'+selDate.y;
+  const ev=JSON.parse(localStorage.getItem('events')||'{}');
+  const list=ev[k]||[];
+  document.getElementById('eventList').innerHTML=list.map((t,i)=>
+    `<div class="row"><span>${t}</span><span class="del" onclick="delEvent('${k}',${i})">✕</span></div>`).join('');
+}
+function addEvent(){
+  const inp=document.getElementById('eventInput');if(!inp.value.trim())return;
+  const k=dayKey(selDate.y,selDate.m,selDate.d);
+  const ev=JSON.parse(localStorage.getItem('events')||'{}');
+  ev[k]=ev[k]||[];ev[k].push(inp.value.trim());
+  localStorage.setItem('events',JSON.stringify(ev));inp.value='';renderCal();
+}
+function delEvent(k,i){const ev=JSON.parse(localStorage.getItem('events')||'{}');ev[k].splice(i,1);localStorage.setItem('events',JSON.stringify(ev));renderCal();}
+renderCal();
+
+// ---- calculator ----
+let cExpr='';
+function cPress(v){
+  if(v==='C'){cExpr='';}
+  else if(v==='='){try{cExpr=String(Function('"use strict";return('+cExpr.replace(/×/g,'*').replace(/÷/g,'/')+')')());}catch(e){cExpr='Error';}}
+  else cExpr+=v;
+  document.getElementById('calcDisp').textContent=cExpr||'0';
+}
+document.getElementById('calcKeys').innerHTML=['7','8','9','÷','4','5','6','×','1','2','3','-','C','0','=','+']
+  .map(k=>`<button class="${'÷×-+='.includes(k)?'op':''}" onclick="cPress('${k}')">${k}</button>`).join('');
+document.getElementById('calc').remove();
+
+// ---- notes ----
+document.getElementById('notesArea').value=localStorage.getItem('notes')||'';
+function saveNotes(){localStorage.setItem('notes',document.getElementById('notesArea').value);}
+
+// ---- shortcut file ----
+function getShortcuts(){return JSON.parse(localStorage.getItem('shortcuts')||'[]');}
+function addShortcut(e){
+  const f=e.target.files[0]; if(!f)return;
+  if(f.size>4*1024*1024){toast('File maks 4MB');e.target.value='';return;}
+  const r=new FileReader();
+  r.onload=()=>{
+    const s=getShortcuts();
+    s.push({id:Date.now(),name:f.name,type:f.type,data:r.result});
+    try{localStorage.setItem('shortcuts',JSON.stringify(s));}catch(err){toast('Penyimpanan penuh');return;}
+    renderShortcuts();toast('Shortcut ditambahkan');
+  };
+  r.readAsDataURL(f); e.target.value='';
+}
+function delShortcut(id){localStorage.setItem('shortcuts',JSON.stringify(getShortcuts().filter(x=>x.id!==id)));renderShortcuts();}
+function openShortcut(id){
+  const s=getShortcuts().find(x=>x.id===id); if(!s)return;
+  if(s.type&&(s.type.startsWith('image')||s.type==='application/pdf'||s.type.startsWith('text'))){window.open(s.data,'_blank');}
+  else{const a=document.createElement('a');a.href=s.data;a.download=s.name;a.click();}
+}
+function fileIcon(t){if(!t)return'📄';if(t.startsWith('image'))return'🖼️';if(t.startsWith('audio'))return'🎵';if(t.startsWith('video'))return'🎬';if(t==='application/pdf')return'📕';return'📄';}
+function renderShortcuts(){
+  const s=getShortcuts();
+  document.getElementById('shortcutList').innerHTML = s.length? s.map(x=>
+    `<div class="row"><span onclick="openShortcut(${x.id})" style="cursor:pointer">${fileIcon(x.type)} ${x.name}</span><span class="del" onclick="delShortcut(${x.id})">✕</span></div>`
+  ).join('') : '<div style="color:var(--sub);font-size:13px">Belum ada shortcut</div>';
+}
+renderShortcuts();
+
+// ---- settings ----
+const APP_VERSION='1.1 (26 Okt 2026)';
+document.getElementById('verLabel').textContent=APP_VERSION;
+function checkUpdate(){toast('Memuat ulang...');setTimeout(()=>location.reload(true),400);}
+function resetAll(){
+  if(!confirm('Yakin hapus semua alarm, agenda, dan catatan?'))return;
+  localStorage.removeItem('alarms');localStorage.removeItem('events');localStorage.removeItem('notes');
+  renderAlarms();renderCal();document.getElementById('notesArea').value='';
+  toast('Semua data dihapus');go('home');
+}
+</script>
+</body></html>
+  
