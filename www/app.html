@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="id"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>App Adik</title>
+<style>
+:root{--text:#fff;--sub:#cdd4e0;--card:rgba(255,255,255,.14);--border:rgba(255,255,255,.2);--accent:#5b7fd8;color-scheme:dark;}
+*{box-sizing:border-box}html,body{height:100%;width:100%;overflow:hidden;overscroll-behavior:none}
+body{margin:0;font-family:-apple-system,Roboto,sans-serif;color:var(--text);overflow:hidden;
+padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transition:background 1.5s}
+#bg{position:fixed;inset:0;z-index:-1;transition:background 1.5s}
+#scene{position:fixed;inset:0;z-index:-1;pointer-events:none}#scene svg{width:100%;height:100%;display:block}.star{animation:tw 3s ease-in-out infinite}@keyframes tw{50%{opacity:.25}}
+#weatherFx{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:-1}
+.cloud,.drop{position:absolute;opacity:.5;pointer-events:none}
+.cloud{font-size:40px;animation:drift 40s linear infinite}
+@keyframes drift{from{transform:translateX(-60px)}to{transform:translateX(110vw)}}
+.drop{width:2px;height:16px;background:#9fc3ff;top:-20px;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(110vh)}}
+.view{position:fixed;inset:0;padding:16px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;display:none;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+.view.active{display:block}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+header h1{font-size:19px;margin:0;font-weight:700}
+.icon-btn{width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--border);
+display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
+#clockWrap{text-align:center;margin:18px 0 4px}
+#clock{font-size:64px;font-weight:300;letter-spacing:-2px}
+#dateStr{color:var(--sub);font-size:14px;margin-top:2px}
+#weatherRow{display:flex;justify-content:center;align-items:center;gap:8px;margin:10px 0 20px}
+select{background:var(--card);border:1px solid var(--border);color:#fff;border-radius:20px;padding:6px 14px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:6px}
+.app{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.app .ic{width:56px;height:56px;border-radius:18px;background:var(--card);border:1px solid var(--border);
+display:flex;align-items:center;justify-content:center;font-size:26px}
+.app span{font-size:11px;color:var(--sub)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:16px;backdrop-filter:blur(6px)}
+.card h3{margin:0 0 8px;font-size:14px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--border);font-size:13px}
+.row:first-of-type{border-top:none}
+.row span{min-width:0;overflow-wrap:anywhere}
+button{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600}
+input[type=time],input[type=text]{background:var(--card);border:1px solid var(--border);color:#fff;border-radius:10px;padding:8px;font-size:14px;width:100%}
+.backbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.backbar h2{font-size:17px;margin:0}
+.toggle{width:40px;height:22px;border-radius:12px;background:#555;position:relative;cursor:pointer;flex-shrink:0}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+.toggle.on::after{left:20px}
+.del{color:#f87171;font-size:18px;padding:0 4px}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;margin-top:10px}
+.calgrid .dow{color:var(--sub);font-size:11px}
+.calgrid .day{padding:8px 0;border-radius:8px;position:relative}
+.calgrid .day.today{background:var(--accent)}
+.calgrid .day.has::after{content:"";position:absolute;bottom:2px;left:50%;width:4px;height:4px;background:#fff;border-radius:50%;transform:translateX(-50%)}
+#calcDisp{text-align:right;background:var(--card);border-radius:12px;padding:14px;font-size:30px;margin-bottom:10px;min-height:44px;word-break:break-all}
+.ckeys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ckeys button{padding:16px 0;font-size:18px;background:var(--card);border:1px solid var(--border)}
+.ckeys button.op{background:var(--accent)}
+#notesArea{width:100%;min-height:50vh;background:var(--card);border:1px solid var(--border);color:#fff;border-radius:12px;padding:12px;font-size:14px}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:50;display:none}
+</style></head>
+<body>
+<div id="bg"></div>
+<div id="scene"></div>
+<div id="weatherFx"></div>
+
+<div class="view active" id="home">
+  <header>
+    <div class="icon-btn" onclick="go('notes')">+</div>
+    <h1>App Adik</h1>
+    <div class="icon-btn" onclick="go('settings')">⚙️</div>
+  </header>
+  <div id="clockWrap"><div id="clock">--:--</div><div id="dateStr"></div></div>
+  <div id="weatherRow">
+    <span id="wIcon">☀️</span>
+    <select id="wSel" onchange="setWeather(this.value)">
+      <option value="cerah">Cerah</option>
+      <option value="berawan">Berawan</option>
+      <option value="hujan">Hujan</option>
+      <option value="petir">Hujan Petir</option>
+    </select>
+  </div>
+  <div class="grid">
+    <div class="app" onclick="go('alarm')"><div class="ic">⏰</div><span>Alarm</span></div>
+    <div class="app" onclick="go('calendar')"><div class="ic">📅</div><span>Kalender</span></div>
+    <div class="app" onclick="go('calc')"><div class="ic">🧮</div><span>Kalkulator</span></div>
+    <div class="app" onclick="go('notes')"><div class="ic">📝</div><span>Catatan</span></div>
+    <div class="app" onclick="go('rpg')"><div class="ic">🎮</div><span>RPG Maker</span></div>
+  </div>
+  <div class="card">
+    <h3>Alarm berikutnya</h3>
+    <div id="nextAlarm" style="color:var(--sub);font-size:13px">Belum ada alarm</div>
+  </div>
+  <div class="card">
+    <h3>Shortcut File</h3>
+    <input type="file" id="fileInput" style="display:none" onchange="addShortcut(event)">
+    <button style="width:100%" onclick="document.getElementById('fileInput').click()">+ Tambah Shortcut</button>
+    <div id="shortcutList" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div class="view" id="settings">
+  <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2>Pengaturan</h2></div>
+  <div class="card">
+    <h3>Tentang</h3>
+    <div style="color:var(--sub);font-size:13px">App Adik — jam, alarm, kalender, kalkulator, catatan. Semua data tersimpan di HP ini saja.</div>
+    <div style="color:var(--sub);font-size:12px;margin-top:6px">Versi: <span id="verLabel"></span></div>
+  </div>
+  <div class="card">
+    <h3>Pembaruan</h3>
+    <div style="color:var(--sub);font-size:13px;margin-bottom:10px">Aplikasi otomatis mengambil versi terbaru tiap dibuka kalau ada internet. Kalau tidak ada internet, dipakai versi terakhir yang tersimpan. Tekan tombol ini untuk memaksa ambil ulang.</div>
+    <button style="width:100%" onclick="checkUpdate()">Cek Pembaruan</button>
+  </div>
+  <div class="card">
+    <h3>Hapus semua data</h3>
+    <div style="color:var(--sub);font-size:13px;margin-bottom:10px">Menghapus semua alarm, agenda kalender, dan catatan. Tidak bisa dibatalkan.</div>
+    <button style="width:100%;background:#dc2626" onclick="resetAll()">Hapus Semua Data</button>
+  </div>
+</div>
+
+<div class="view" id="alarm">
+  <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2>Alarm</h2></div>
+  <input type="time" id="newAlarmTime">
+  <input type="text" id="newAlarmLabel" placeholder="Label (opsional)" style="margin-top:8px">
+  <button style="margin-top:10px;width:100%" onclick="addAlarm()">Tambah Alarm</button>
+  <div class="card"><div id="alarmList"></div></div>
+</div>
+
+<div class="view" id="calendar">
+  <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2 id="calTitle">Kalender</h2></div>
+  <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+    <button onclick="shiftMonth(-1)">‹</button><button onclick="shiftMonth(1)">›</button>
+  </div>
+  <div class="calgrid" id="calGrid"></div>
+  <div class="card">
+    <h3 id="selDateLabel">Pilih tanggal</h3>
+    <input type="text" id="eventInput" placeholder="Tulis agenda...">
+    <button style="margin-top:8px;width:100%" onclick="addEvent()">Simpan</button>
+    <div id="eventList" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div class="view" id="calc">
+  <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2>Kalkulator</h2></div>
+  <div id="calcDisp">0</div>
+  <div class="ckeys" id="calcKeys"></div>
+</div>
+
+<div class="view" id="notes">
+  <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2>Catatan</h2></div>
+  <textarea id="notesArea" oninput="saveNotes()" placeholder="Tulis catatan di sini..."></textarea>
+</div>
+
+<div class="view" id="rpg">
+  <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2>RPG Maker</h2></div>
+  <div class="card" style="margin-top:0">
+    <h3>Save Game (.rpgsave / .rmmzsave)</h3>
+    <input type="file" id="rpgFile" style="display:none" onchange="rpgLoad(event)">
+    <button style="width:100%" onclick="document.getElementById('rpgFile').click()">Buka File Save</button>
+    <div id="rpgInfo" style="color:var(--sub);font-size:12px;margin:8px 0"></div>
+    <textarea id="rpgTxt" spellcheck="false" placeholder="Isi save (JSON) tampil di sini, bisa diedit..." style="width:100%;height:38vh;background:rgba(0,0,0,.35);border:1px solid var(--border);color:#fff;border-radius:10px;padding:8px;font:11px monospace"></textarea>
+    <button style="width:100%;margin-top:8px" onclick="rpgSave()">Simpan / Bagikan Save</button>
+  </div>
+  <div class="card">
+    <h3>Dekripsi Aset (.rpgmvp .rpgmvm .rpgmvo .png_ .m4a_ .ogg_)</h3>
+    <input type="text" id="rpgKey" placeholder="Kunci 32 hex (System.json), kosong = otomatis untuk gambar">
+    <input type="file" id="rpgAsset" multiple style="display:none" onchange="rpgAssets(event)">
+    <button style="width:100%;margin-top:8px" onclick="document.getElementById('rpgAsset').click()">Pilih Aset & Dekripsi (bisa banyak file)</button>
+  </div>
+  <div class="card">
+    <h3>Konversi Save Banyak File</h3>
+    <select id="rpgMode" style="width:100%;border-radius:10px">
+      <option value="json">Save (.rpgsave/.rmmzsave) → JSON</option>
+      <option value="mv">JSON → Save MV (.rpgsave)</option>
+      <option value="mz">JSON → Save MZ (.rmmzsave)</option>
+    </select>
+    <input type="file" id="rpgBatchIn" multiple style="display:none" onchange="rpgBatch(event)">
+    <button style="width:100%;margin-top:8px" onclick="document.getElementById('rpgBatchIn').click()">Pilih Banyak File & Konversi</button>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:12px;color:var(--sub)"><input type="checkbox" id="rpgZip" checked> Gabung hasil jadi 1 file ZIP (berlaku juga untuk dekripsi aset)</label>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function go(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2500);}
+window.addEventListener('error',e=>{try{toast('Error: '+e.message)}catch(_){}});
+
+// ---- clock + background by time ----
+function updateClock(){
+  const d=new Date();
+  const hh=String(d.getHours()).padStart(2,'0'),mm=String(d.getMinutes()).padStart(2,'0');
+  document.getElementById('clock').textContent=hh+':'+mm;
+  document.getElementById('dateStr').textContent=d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long'});
+  applyBg(d.getHours());applyScene(d);
+  checkAlarms(d);
+}
+let sceneKey='';
+function sceneSVG(h){
+  const night=h<5||h>=18;
+  const P=night?{a:'#16294a',b:'#0d1b33',t:'#08121f',c:'#f4f1de',g:'rgba(244,241,222,.22)'}
+    :h<10?{a:'#79c07a',b:'#4f9d62',t:'#2f7a4a',c:'#ffd36b',g:'rgba(255,211,107,.35)'}
+    :h<15?{a:'#6cc070',b:'#3f9a55',t:'#287a3f',c:'#fff7c2',g:'rgba(255,247,194,.4)'}
+    :{a:'#8a5f78',b:'#5c405c',t:'#3a2842',c:'#ff9a4d',g:'rgba(255,154,77,.4)'};
+  const t=night?((h-18+24)%24)/11:(h-5)/13,x=200,y=650-510*Math.sin(Math.PI*t);
+  let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;let st='';
+  if(night)for(let i=0;i<45;i++)st+=`<circle class="star" cx="${(r()*400).toFixed(0)}" cy="${(r()*430).toFixed(0)}" r="${(0.6+r()*1.2).toFixed(1)}" fill="#fff" style="animation-delay:${(r()*3).toFixed(1)}s"/>`;
+  const win=night?'#ffd36b':'#cfe3ff';let hs='';
+  [[60,632],[95,625],[290,622],[330,630]].forEach(([hx,hy])=>{hs+=`<rect x="${hx}" y="${hy}" width="22" height="18" fill="${P.t}"/><path d="M${hx-3} ${hy} l14-10 l14 10z" fill="${P.t}"/><rect x="${hx+6}" y="${hy+6}" width="5" height="5" fill="${win}"/><rect x="${hx+13}" y="${hy+6}" width="5" height="5" fill="${win}"/>`});
+  let tr='';[20,150,235,375].forEach((tx,i)=>{const ty=668+(i%2)*8;tr+=`<path d="M${tx} ${ty-36} l-11 36 h22z M${tx} ${ty-52} l-8 24 h16z" fill="${P.t}"/>`});
+  return `<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMax slice"><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="70" fill="${P.g}"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="26" fill="${P.c}"/>${st}<path d="M0 650 Q100 590 200 625 T400 605 V800 H0Z" fill="${P.a}"/>${hs}<path d="M0 715 Q120 660 230 695 T400 678 V800 H0Z" fill="${P.b}"/>${tr}</svg>`;
+}
+function applyScene(d){
+  const h=d.getHours()+d.getMinutes()/60,k=Math.floor(h*12);
+  if(k===sceneKey)return;sceneKey=k;
+  document.getElementById('scene').innerHTML=sceneSVG(h);
+}
+function applyBg(h){
+  let g;
+  if(h>=5&&h<10) g='linear-gradient(180deg,#8ec5fc,#5b8def)';
+  else if(h>=10&&h<15) g='linear-gradient(180deg,#4a90e2,#357abd)';
+  else if(h>=15&&h<18) g='linear-gradient(180deg,#f2994a,#935c8f)';
+  else g='linear-gradient(180deg,#0f1a3a,#1e2a4a)';
+  document.getElementById('bg').style.background=g;
+}
+function setWeather(w){
+  localStorage.setItem('weather',w);
+  const icons={cerah:'☀️',berawan:'⛅',hujan:'🌧️',petir:'⛈️'};
+  document.getElementById('wIcon').textContent=icons[w];
+  document.getElementById('wSel').value=w;
+  const fx=document.getElementById('weatherFx');fx.innerHTML='';
+  if(w==='berawan'||w==='hujan'||w==='petir'){
+    for(let i=0;i<3;i++){const c=document.createElement('div');c.className='cloud';c.textContent='☁️';
+      c.style.top=(10+i*15)+'%';c.style.animationDelay=(-i*13)+'s';fx.appendChild(c);}
+  }
+  if(w==='hujan'||w==='petir'){
+    for(let i=0;i<25;i++){const r=document.createElement('div');r.className='drop';
+      r.style.left=Math.random()*100+'%';r.style.animationDuration=(0.5+Math.random())+'s';
+      r.style.animationDelay=Math.random()+'s';fx.appendChild(r);}
+  }
+}
+(function(){const w=localStorage.getItem('weather')||'cerah';setWeather(w);})();
+setInterval(updateClock,1000);updateClock();
+
+// ---- alarm ----
+function getAlarms(){return JSON.parse(localStorage.getItem('alarms')||'[]');}
+function saveAlarms(a){localStorage.setItem('alarms',JSON.stringify(a));renderAlarms();}
+function addAlarm(){
+  const t=document.getElementById('newAlarmTime').value;
+  if(!t){toast('Pilih jam dulu');return;}
+  const l=document.getElementById('newAlarmLabel').value||'Alarm';
+  const a=getAlarms();a.push({time:t,label:l,on:true,id:Date.now()});
+  saveAlarms(a);document.getElementById('newAlarmLabel').value='';
+}
+function toggleAlarm(id){const a=getAlarms();const x=a.find(x=>x.id===id);x.on=!x.on;saveAlarms(a);}
+function delAlarm(id){saveAlarms(getAlarms().filter(x=>x.id!==id));}
+function renderAlarms(){
+  const a=getAlarms().sort((x,y)=>x.time.localeCompare(y.time));
+  document.getElementById('alarmList').innerHTML=a.length?a.map(x=>
+    `<div class="row"><div><b>${x.time}</b> <span style="color:var(--sub)">${x.label}</span></div>
+     <div style="display:flex;align-items:center;gap:10px">
+     <div class="toggle ${x.on?'on':''}" onclick="toggleAlarm(${x.id})"></div>
+     <span class="del" onclick="delAlarm(${x.id})">✕</span></div></div>`).join('')
+    : '<div style="color:var(--sub);font-size:13px">Belum ada alarm</div>';
+  const active=a.filter(x=>x.on);
+  document.getElementById('nextAlarm').textContent=active.length?(active[0].time+' — '+active[0].label):'Belum ada alarm';
+}
+var lastCheck='';
+function checkAlarms(d){
+  const hh=String(d.getHours()).padStart(2,'0'),mm=String(d.getMinutes()).padStart(2,'0');
+  const now=hh+':'+mm;
+  if(now===lastCheck)return; lastCheck=now;
+  getAlarms().forEach(a=>{if(a.on&&a.time===now){toast('⏰ '+a.label+' — '+a.time);beep();}});
+}
+function beep(){
+  try{const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=880;o.start();g.gain.setValueAtTime(.2,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+1.2);o.stop(ctx.currentTime+1.2);}catch(e){}
+}
+renderAlarms();
+
+// ---- calendar ----
+let calDate=new Date(), selDate=null;
+function shiftMonth(n){calDate.setMonth(calDate.getMonth()+n);renderCal();}
+function dayKey(y,m,d){return y+'-'+(m+1)+'-'+d;}
+function renderCal(){
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  document.getElementById('calTitle').textContent=calDate.toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+  const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
+  const today=new Date();
+  const ev=JSON.parse(localStorage.getItem('events')||'{}');
+  let html=['Min','Sen','Sel','Rab','Kam','Jum','Sab'].map(d=>`<div class="dow">${d}</div>`).join('');
+  for(let i=0;i<first;i++)html+='<div></div>';
+  for(let d=1;d<=days;d++){
+    const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+    const has=ev[dayKey(y,m,d)]&&ev[dayKey(y,m,d)].length;
+    html+=`<div class="day ${isToday?'today':''} ${has?'has':''}" onclick="pickDay(${y},${m},${d})">${d}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML=html;
+  if(!selDate)selDate={y:today.getFullYear(),m:today.getMonth(),d:today.getDate()};
+  renderEvents();
+}
+function pickDay(y,m,d){selDate={y,m,d};renderEvents();}
+function renderEvents(){
+  const k=dayKey(selDate.y,selDate.m,selDate.d);
+  document.getElementById('selDateLabel').textContent='Agenda '+selDate.d+'/'+(selDate.m+1)+'/'+selDate.y;
+  const ev=JSON.parse(localStorage.getItem('events')||'{}');
+  const list=ev[k]||[];
+  document.getElementById('eventList').innerHTML=list.map((t,i)=>
+    `<div class="row"><span>${t}</span><span class="del" onclick="delEvent('${k}',${i})">✕</span></div>`).join('');
+}
+function addEvent(){
+  const inp=document.getElementById('eventInput');if(!inp.value.trim())return;
+  const k=dayKey(selDate.y,selDate.m,selDate.d);
+  const ev=JSON.parse(localStorage.getItem('events')||'{}');
+  ev[k]=ev[k]||[];ev[k].push(inp.value.trim());
+  localStorage.setItem('events',JSON.stringify(ev));inp.value='';renderCal();
+}
+function delEvent(k,i){const ev=JSON.parse(localStorage.getItem('events')||'{}');ev[k].splice(i,1);localStorage.setItem('events',JSON.stringify(ev));renderCal();}
+renderCal();
+
+// ---- calculator ----
+let cExpr='';
+function cPress(v){
+  if(v==='C'){cExpr='';}
+  else if(v==='='){try{cExpr=String(Function('"use strict";return('+cExpr.replace(/×/g,'*').replace(/÷/g,'/')+')')());}catch(e){cExpr='Error';}}
+  else cExpr+=v;
+  document.getElementById('calcDisp').textContent=cExpr||'0';
+}
+document.getElementById('calcKeys').innerHTML=['7','8','9','÷','4','5','6','×','1','2','3','-','C','0','=','+']
+  .map(k=>`<button class="${'÷×-+='.includes(k)?'op':''}" onclick=
