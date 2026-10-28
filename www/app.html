@@ -9,6 +9,7 @@
 body{margin:0;font-family:-apple-system,Roboto,sans-serif;color:var(--text);overflow:hidden;
 padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transition:background 1.5s}
 #bg{position:fixed;inset:0;z-index:-1;transition:background 1.5s}
+#scene{position:fixed;inset:0;z-index:-1;pointer-events:none}#scene svg{width:100%;height:100%;display:block}.star{animation:tw 3s ease-in-out infinite}@keyframes tw{50%{opacity:.25}}
 .cloud,.drop{position:absolute;opacity:.5;pointer-events:none}
 .cloud{font-size:40px;animation:drift 40s linear infinite}
 @keyframes drift{from{transform:translateX(-60px)}to{transform:translateX(110vw)}}
@@ -57,6 +58,7 @@ input[type=time],input[type=text]{background:var(--card);border:1px solid var(--
 </style></head>
 <body>
 <div id="bg"></div>
+<div id="scene"></div>
 <div id="weatherFx"></div>
 
 <div class="view active" id="home">
@@ -177,8 +179,28 @@ function updateClock(){
   const hh=String(d.getHours()).padStart(2,'0'),mm=String(d.getMinutes()).padStart(2,'0');
   document.getElementById('clock').textContent=hh+':'+mm;
   document.getElementById('dateStr').textContent=d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long'});
-  applyBg(d.getHours());
+  applyBg(d.getHours());applyScene(d);
   checkAlarms(d);
+}
+let sceneKey='';
+function sceneSVG(h){
+  const night=h<5||h>=18;
+  const P=night?{a:'#16294a',b:'#0d1b33',t:'#08121f',c:'#f4f1de',g:'rgba(244,241,222,.22)'}
+    :h<10?{a:'#79c07a',b:'#4f9d62',t:'#2f7a4a',c:'#ffd36b',g:'rgba(255,211,107,.35)'}
+    :h<15?{a:'#6cc070',b:'#3f9a55',t:'#287a3f',c:'#fff7c2',g:'rgba(255,247,194,.4)'}
+    :{a:'#8a5f78',b:'#5c405c',t:'#3a2842',c:'#ff9a4d',g:'rgba(255,154,77,.4)'};
+  const t=night?((h-18+24)%24)/11:(h-5)/13,x=40+320*t,y=540-420*Math.sin(Math.PI*t);
+  let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;let st='';
+  if(night)for(let i=0;i<45;i++)st+=`<circle class="star" cx="${(r()*400).toFixed(0)}" cy="${(r()*430).toFixed(0)}" r="${(0.6+r()*1.2).toFixed(1)}" fill="#fff" style="animation-delay:${(r()*3).toFixed(1)}s"/>`;
+  const win=night?'#ffd36b':'#cfe3ff';let hs='';
+  [[60,632],[95,625],[290,622],[330,630]].forEach(([hx,hy])=>{hs+=`<rect x="${hx}" y="${hy}" width="22" height="18" fill="${P.t}"/><path d="M${hx-3} ${hy} l14-10 l14 10z" fill="${P.t}"/><rect x="${hx+6}" y="${hy+6}" width="5" height="5" fill="${win}"/><rect x="${hx+13}" y="${hy+6}" width="5" height="5" fill="${win}"/>`});
+  let tr='';[20,150,235,375].forEach((tx,i)=>{const ty=668+(i%2)*8;tr+=`<path d="M${tx} ${ty-36} l-11 36 h22z M${tx} ${ty-52} l-8 24 h16z" fill="${P.t}"/>`});
+  return `<svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMax slice"><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="70" fill="${P.g}"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="26" fill="${P.c}"/>${st}<path d="M0 650 Q100 590 200 625 T400 605 V800 H0Z" fill="${P.a}"/>${hs}<path d="M0 715 Q120 660 230 695 T400 678 V800 H0Z" fill="${P.b}"/>${tr}</svg>`;
+}
+function applyScene(d){
+  const h=d.getHours()+d.getMinutes()/60,k=Math.floor(h*12);
+  if(k===sceneKey)return;sceneKey=k;
+  document.getElementById('scene').innerHTML=sceneSVG(h);
 }
 function applyBg(h){
   let g;
@@ -331,7 +353,7 @@ function renderShortcuts(){
 renderShortcuts();
 
 // ---- settings ----
-const APP_VERSION='1.4 (25 Okt 2026)';
+const APP_VERSION='1.5 (25 Okt 2026)';
 /* ===== RPG Maker: konverter save & aset ===== */
 const LZ=(()=>{const f=String.fromCharCode,K="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 function comp(u){if(u==null)return"";const bits=6,gc=a=>K.charAt(a);let i,v,ctx={},dict={},w="",wc="",es=2,ds=3,nb=2,data=[],dv=0,dp=0;
