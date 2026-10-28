@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 <html lang="id"><head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>App Adik</title>
 <style>
 :root{--text:#fff;--sub:#cdd4e0;--card:rgba(255,255,255,.14);--border:rgba(255,255,255,.2);--accent:#5b7fd8;color-scheme:dark;}
-*{box-sizing:border-box}html,body{height:100%}
+*{box-sizing:border-box}html,body{height:100%;width:100%;overflow:hidden;overscroll-behavior:none}
 body{margin:0;font-family:-apple-system,Roboto,sans-serif;color:var(--text);overflow:hidden;
 padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transition:background 1.5s}
 #bg{position:fixed;inset:0;z-index:-1;transition:background 1.5s}
 #scene{position:fixed;inset:0;z-index:-1;pointer-events:none}#scene svg{width:100%;height:100%;display:block}.star{animation:tw 3s ease-in-out infinite}@keyframes tw{50%{opacity:.25}}
+#weatherFx{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:-1}
 .cloud,.drop{position:absolute;opacity:.5;pointer-events:none}
 .cloud{font-size:40px;animation:drift 40s linear infinite}
 @keyframes drift{from{transform:translateX(-60px)}to{transform:translateX(110vw)}}
 .drop{width:2px;height:16px;background:#9fc3ff;top:-20px;animation:fall linear infinite}
 @keyframes fall{to{transform:translateY(110vh)}}
-.view{position:fixed;inset:0;padding:16px;overflow-y:auto;display:none;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+.view{position:fixed;inset:0;padding:16px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;display:none;padding-top:calc(16px + env(safe-area-inset-top,0px))}
 .view.active{display:block}
 header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 header h1{font-size:19px;margin:0;font-weight:700}
@@ -35,6 +36,7 @@ display:flex;align-items:center;justify-content:center;font-size:26px}
 .card h3{margin:0 0 8px;font-size:14px}
 .row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--border);font-size:13px}
 .row:first-of-type{border-top:none}
+.row span{min-width:0;overflow-wrap:anywhere}
 button{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600}
 input[type=time],input[type=text]{background:var(--card);border:1px solid var(--border);color:#fff;border-radius:10px;padding:8px;font-size:14px;width:100%}
 .backbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
@@ -364,7 +366,7 @@ function renderShortcuts(){
 renderShortcuts();
 
 // ---- settings ----
-const APP_VERSION='1.7 (25 Okt 2026)';
+const APP_VERSION='1.8 (25 Okt 2026)';
 /* ===== RPG Maker: konverter save & aset ===== */
 const LZ=(()=>{const f=String.fromCharCode,K="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 function comp(u){if(u==null)return"";const bits=6,gc=a=>K.charAt(a);let i,v,ctx={},dict={},w="",wc="",es=2,ds=3,nb=2,data=[],dv=0,dp=0;
