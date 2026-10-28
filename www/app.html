@@ -163,7 +163,18 @@ input[type=time],input[type=text]{background:var(--card);border:1px solid var(--
     <h3>Dekripsi Aset (.rpgmvp .rpgmvm .rpgmvo .png_ .m4a_ .ogg_)</h3>
     <input type="text" id="rpgKey" placeholder="Kunci 32 hex (System.json), kosong = otomatis untuk gambar">
     <input type="file" id="rpgAsset" multiple style="display:none" onchange="rpgAssets(event)">
-    <button style="width:100%;margin-top:8px" onclick="document.getElementById('rpgAsset').click()">Pilih Aset & Dekripsi</button>
+    <button style="width:100%;margin-top:8px" onclick="document.getElementById('rpgAsset').click()">Pilih Aset & Dekripsi (bisa banyak file)</button>
+  </div>
+  <div class="card">
+    <h3>Konversi Save Banyak File</h3>
+    <select id="rpgMode" style="width:100%;border-radius:10px">
+      <option value="json">Save (.rpgsave/.rmmzsave) → JSON</option>
+      <option value="mv">JSON → Save MV (.rpgsave)</option>
+      <option value="mz">JSON → Save MZ (.rmmzsave)</option>
+    </select>
+    <input type="file" id="rpgBatchIn" multiple style="display:none" onchange="rpgBatch(event)">
+    <button style="width:100%;margin-top:8px" onclick="document.getElementById('rpgBatchIn').click()">Pilih Banyak File & Konversi</button>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:12px;color:var(--sub)"><input type="checkbox" id="rpgZip" checked> Gabung hasil jadi 1 file ZIP (berlaku juga untuk dekripsi aset)</label>
   </div>
 </div>
 
@@ -189,7 +200,7 @@ function sceneSVG(h){
     :h<10?{a:'#79c07a',b:'#4f9d62',t:'#2f7a4a',c:'#ffd36b',g:'rgba(255,211,107,.35)'}
     :h<15?{a:'#6cc070',b:'#3f9a55',t:'#287a3f',c:'#fff7c2',g:'rgba(255,247,194,.4)'}
     :{a:'#8a5f78',b:'#5c405c',t:'#3a2842',c:'#ff9a4d',g:'rgba(255,154,77,.4)'};
-  const t=night?((h-18+24)%24)/11:(h-5)/13,x=40+320*t,y=540-420*Math.sin(Math.PI*t);
+  const t=night?((h-18+24)%24)/11:(h-5)/13,x=200,y=650-510*Math.sin(Math.PI*t);
   let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;let st='';
   if(night)for(let i=0;i<45;i++)st+=`<circle class="star" cx="${(r()*400).toFixed(0)}" cy="${(r()*430).toFixed(0)}" r="${(0.6+r()*1.2).toFixed(1)}" fill="#fff" style="animation-delay:${(r()*3).toFixed(1)}s"/>`;
   const win=night?'#ffd36b':'#cfe3ff';let hs='';
@@ -353,7 +364,7 @@ function renderShortcuts(){
 renderShortcuts();
 
 // ---- settings ----
-const APP_VERSION='1.5 (25 Okt 2026)';
+const APP_VERSION='1.7 (25 Okt 2026)';
 /* ===== RPG Maker: konverter save & aset ===== */
 const LZ=(()=>{const f=String.fromCharCode,K="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 function comp(u){if(u==null)return"";const bits=6,gc=a=>K.charAt(a);let i,v,ctx={},dict={},w="",wc="",es=2,ds=3,nb=2,data=[],dv=0,dp=0;
@@ -376,7 +387,7 @@ if(en==0){en=Math.pow(2,nb);nb++}
 if(dict[c])entry=dict[c];else if(c===ds)entry=w+w.charAt(0);else return null;
 res.push(entry);dict[ds++]=w+entry.charAt(0);en--;w=entry;if(en==0){en=Math.pow(2,nb);nb++}}}
 return{comp,dec}})();
-async function zl(b,c){const s=new(c?CompressionStream:DecompressionStream)('deflate'),w=s.writable.getWriter();w.write(b);w.close();return new Uint8Array(await new Response(s.readable).arrayBuffer())}
+async function zl(b,c){const s=new(c?CompressionStream:DecompressionStream)('deflate'),w=s.writable.getWriter();w.write(b).catch(()=>{});w.close().catch(()=>{});return new Uint8Array(await new Response(s.readable).arrayBuffer())}
 const b64b=s=>Uint8Array.from(atob(s.replace(/\s/g,'')),c=>c.charCodeAt(0));
 const bb64=b=>{let s='';for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return btoa(s)};
 let rpgFmt='',rpgName='';
@@ -390,7 +401,24 @@ async function rpgSave(){if(!rpgFmt){toast('Buka file save dulu');return}let j;
 try{j=JSON.stringify(JSON.parse(document.getElementById('rpgTxt').value))}catch(x){toast('JSON tidak valid: '+x.message);return}
 const out=rpgFmt=='mv'?LZ.comp(j):bb64(await zl(new TextEncoder().encode(j),true));
 rpgOut([new File([out],rpgName,{type:'text/plain'})])}
-async function rpgOut(files){try{if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files});return}}catch(e){if(e.name==='AbortError')return}
+const crcT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc=b=>{let c=-1;for(let i=0;i<b.length;i++)c=crcT[(c^b[i])&255]^(c>>>8);return(c^-1)>>>0};
+async function zipFiles(files){const enc=new TextEncoder(),parts=[],cen=[],seen={};let off=0;
+for(const f of files){let n=f.name;if(seen[n])n=(++seen[n])+'_'+n;else seen[n]=1;
+const nm=enc.encode(n),d=new Uint8Array(await f.arrayBuffer()),c=crc(d),h=new DataView(new ArrayBuffer(30)),e=new DataView(new ArrayBuffer(46));
+h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x800,true);h.setUint16(12,0x21,true);h.setUint32(14,c,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,nm.length,true);
+e.setUint32(0,0x02014b50,true);e.setUint16(4,20,true);e.setUint16(6,20,true);e.setUint16(8,0x800,true);e.setUint16(14,0x21,true);e.setUint32(16,c,true);e.setUint32(20,d.length,true);e.setUint32(24,d.length,true);e.setUint16(28,nm.length,true);e.setUint32(42,off,true);
+parts.push(new Uint8Array(h.buffer),nm,d);cen.push(new Uint8Array(e.buffer),nm);off+=30+nm.length+d.length}
+const cs=cen.reduce((a,b)=>a+b.length,0),z=new DataView(new ArrayBuffer(22));
+z.setUint32(0,0x06054b50,true);z.setUint16(8,files.length,true);z.setUint16(10,files.length,true);z.setUint32(12,cs,true);z.setUint32(16,off,true);
+return new Blob([...parts,...cen,new Uint8Array(z.buffer)],{type:'application/zip'})}
+async function rpgBatch(e){const mode=document.getElementById('rpgMode').value,out=[];
+for(const f of e.target.files){try{const txt=(await f.text()).trim(),base=f.name.replace(/\.[^.]+$/,'');
+if(mode=='json'){const t=LZ.dec(txt);const j=t&&/^[\[{]/.test(t)?t:new TextDecoder().decode(await zl(b64b(txt),false));out.push(new File([JSON.stringify(JSON.parse(j),null,1)],base+'.json',{type:'application/json'}))}
+else{const j=JSON.stringify(JSON.parse(txt));out.push(new File([mode=='mv'?LZ.comp(j):bb64(await zl(new TextEncoder().encode(j),true))],base+(mode=='mv'?'.rpgsave':'.rmmzsave'),{type:'text/plain'}))}
+}catch(x){toast('Gagal: '+f.name)}}
+e.target.value='';if(out.length)rpgOut(out)}
+async function rpgOut(files){if(files.length>1&&document.getElementById('rpgZip').checked)files=[new File([await zipFiles(files)],'rpg-hasil.zip',{type:'application/zip'})];try{if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files});return}}catch(e){if(e.name==='AbortError')return}
 files.forEach(f=>{const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();a.remove()});toast('Mengunduh '+files.length+' file')}
 const PNGH=[0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A,0,0,0,0x0D,0x49,0x48,0x44,0x52],EXT={rpgmvp:'png',rpgmvm:'m4a',rpgmvo:'ogg',png_:'png',m4a_:'m4a',ogg_:'ogg'};
 async function rpgAssets(e){const kin=document.getElementById('rpgKey'),out=[];
