@@ -51,7 +51,7 @@ input[type=time],input[type=text]{background:var(--card);border:1px solid var(--
 .calgrid .day{padding:8px 0;border-radius:8px;position:relative}
 .calgrid .day.today{background:var(--accent)}
 .calgrid .day.has::after{content:"";position:absolute;bottom:2px;left:50%;width:4px;height:4px;background:#fff;border-radius:50%;transform:translateX(-50%)}
-#calc{text-align:right;background:var(--card);border-radius:12px;padding:14px;font-size:30px;margin-bottom:10px;min-height:44px;word-break:break-all}
+#calcDisp{text-align:right;background:var(--card);border-radius:12px;padding:14px;font-size:30px;margin-bottom:10px;min-height:44px;word-break:break-all}
 .ckeys{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .ckeys button{padding:16px 0;font-size:18px;background:var(--card);border:1px solid var(--border)}
 .ckeys button.op{background:var(--accent)}
@@ -142,7 +142,6 @@ input[type=time],input[type=text]{background:var(--card);border:1px solid var(--
 <div class="view" id="calc">
   <div class="backbar"><div class="icon-btn" onclick="go('home')">←</div><h2>Kalkulator</h2></div>
   <div id="calcDisp">0</div>
-  <div id="calc" style="display:none"></div>
   <div class="ckeys" id="calcKeys"></div>
 </div>
 
@@ -265,7 +264,7 @@ function renderAlarms(){
   const active=a.filter(x=>x.on);
   document.getElementById('nextAlarm').textContent=active.length?(active[0].time+' — '+active[0].label):'Belum ada alarm';
 }
-let lastCheck='';
+var lastCheck='';
 function checkAlarms(d){
   const hh=String(d.getHours()).padStart(2,'0'),mm=String(d.getMinutes()).padStart(2,'0');
   const now=hh+':'+mm;
@@ -330,7 +329,6 @@ function cPress(v){
 }
 document.getElementById('calcKeys').innerHTML=['7','8','9','÷','4','5','6','×','1','2','3','-','C','0','=','+']
   .map(k=>`<button class="${'÷×-+='.includes(k)?'op':''}" onclick="cPress('${k}')">${k}</button>`).join('');
-document.getElementById('calc').remove();
 
 // ---- notes ----
 document.getElementById('notesArea').value=localStorage.getItem('notes')||'';
@@ -366,7 +364,7 @@ function renderShortcuts(){
 renderShortcuts();
 
 // ---- settings ----
-const APP_VERSION='1.8 (25 Okt 2026)';
+const APP_VERSION='1.9 (28 Okt 2026)';
 /* ===== RPG Maker: konverter save & aset ===== */
 const LZ=(()=>{const f=String.fromCharCode,K="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 function comp(u){if(u==null)return"";const bits=6,gc=a=>K.charAt(a);let i,v,ctx={},dict={},w="",wc="",es=2,ds=3,nb=2,data=[],dv=0,dp=0;
